@@ -1,0 +1,1 @@
+A simple REST-API-style application using ASP.NET 6.0 (server) and JavaScript (client).

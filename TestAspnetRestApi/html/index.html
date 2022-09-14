@@ -1,0 +1,173 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>ASP.NET REST API</title>
+</head>
+<body>
+    <h2>Пользователи</h2>
+    <div>
+        <input type="hidden" id="userId" />
+        <p>
+            Имя:
+            <input id="userName" />
+        </p>
+        <p>
+            Возраст:
+            <input id="userAge" type="number" />
+        </p>
+        <p>
+            <button id="saveBtn">Сохранить</button>
+            <button id="cancelBtn">Отмена</button>
+        </p>
+    </div>
+    <table>
+        <thead>
+            <tr>
+                <th>Имя</th>
+                <th>Возраст</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+    <script>
+        async function getUsers() {
+            const response = await fetch("/api/users", {
+                method: "GET",
+                headers: { "Accept": "application/json" }
+            });
+            if (response.ok === true) {
+                const users = await response.json();
+                const table = document.querySelector("tbody");
+                users.forEach(user => table.append(row(user)));
+            }
+        }
+
+        async function getUser(id) {
+            const response = await fetch(`/api/users/${id}`, {
+                method: "GET",
+                headers: { "Accept": "application/json" }
+            });
+            if (response.ok === true) {
+                const user = await response.json();
+                document.getElementById("userId").value = user.id;
+                document.getElementById("userName").value = user.name;
+                document.getElementById("userAge").value = user.age;
+            } else {
+                const error = await response.json;
+                console.log(error.message);
+            }
+        }
+
+        async function createUser(userName, userAge) {
+            const json = JSON.stringify({
+                name: userName,
+                age: userAge
+            });
+            const response = await fetch(`/api/users`, {
+                method: "POST",
+                headers: {
+                    "Accept": "application/json",
+                    "Content-Type": "application/json"
+                },
+                body: json
+            });
+            if (response.ok === true) {
+                const newUser = await response.json();
+                document.querySelector("tbody").append(row(newUser));
+            } else {
+                const error = await response.json();
+                console.error(error.message);
+            }
+        }
+
+        async function editUser(userId, userName, userAge) {
+            const json = JSON.stringify({
+                name: userName,
+                age: userAge
+            });
+            const response = await fetch(`/api/users/${userId}`, {
+                method: "PUT",
+                headers: {
+                    "Accept": "application/json",
+                    "Content-Type": "application/json"
+                },
+                body: json
+            });
+            if (response.ok == true) {
+                const updatedUser = await response.json();
+                document.querySelector(`tr[data-rowid='${userId}']`)
+                    .replaceWith(row(updatedUser));
+            } else {
+                const error = await response.json();
+                console.error(error.message);
+            }
+        }
+
+        async function deleteUser(id) {
+            const response = await fetch(`/api/users/${id}`, {
+                method: "DELETE",
+                headers: { "Accept": "application/json" }
+            });
+            if (response.ok === true) {
+                const deletedUser = await response.json();
+                document.querySelector(`tr[data-rowid='${deletedUser.id}']`)
+                    .remove();
+            } else {
+                const error = await response.json();
+                console.error(error.message);
+            }
+        }
+
+        async function reset() {
+            document.getElementById("userId").value = "";
+            document.getElementById("userName").value = "";
+            document.getElementById("userAge").value = "";
+        }
+
+        function row(user) {
+            const row = document.createElement("tr");
+            row.setAttribute("data-rowid", user.id);
+            const nameCell = document.createElement("td");
+            nameCell.append(user.name);
+            row.append(nameCell);
+            const ageCell = document.createElement("td");
+            ageCell.append(user.age);
+            row.append(ageCell);
+
+            const buttonsCell = document.createElement("td");
+            const editButton = document.createElement("button");
+            editButton.append("Изменить");
+            editButton.addEventListener("click", async () => await getUser(user.id));
+            buttonsCell.append(editButton);
+            const deleteButton = document.createElement("button");
+            deleteButton.append("удалить");
+            deleteButton.addEventListener("click", async () => await deleteUser(user.id));
+            buttonsCell.append(deleteButton);
+            row.append(buttonsCell);
+
+            return row;
+        }
+
+        document.getElementById("cancelBtn")
+            .addEventListener("click", async () => await reset());
+
+        document.getElementById("saveBtn")
+            .addEventListener("click", async () => {
+                const id = document.getElementById("userId").value;
+                const name = document.getElementById("userName").value;
+                const age = document.getElementById("userAge").value;
+                //если скрытое поле пустое - будет создание юзера
+                if (id === "") {
+                    await createUser(name, age);
+                } else {
+                    //иначе это редактирование
+                    await editUser(id, name, age);
+                }
+                reset();
+            });
+
+        getUsers();
+    </script>
+</body>
+</html>
